@@ -16,17 +16,25 @@ done
 
 cd ../../ # back to project dir
 
-python3.5 analysis/fiftyshadesofgreen/annotation_parser/add_ld_rho.py > data/annotation_table_rho.txt # create new annotation table
+# create new annotation table
+python3.5 analysis/fiftyshadesofgreen/annotation_parser/add_ld_rho.py > data/annotation_table_rho.txt
 echo 'made table'
 bgzip data/annotation_table_rho.txt
 tabix -p vcf data/annotation_table_rho.txt.gz
 echo 'complete'
 
 # GC content
-python3.5 analysis/fiftyshadesofgreen/annotation_parser/antr_correlate_dict.py \
+python3.5 antr_correlate_dict.py \
 -t data/annotation_table_rho.txt.gz \
--w 50000 \
+-w 10000 \
 --gc_content > gc_content_50k.txt
+
+# rho LD and nucleotide diversity
+python3.5 antr_correlate_diversity.py \
+-t data/annotation_table_rho.txt.gz \
+-w 10000 \
+--gene_density \
+--neutral_only > rho_diversity_10k.txt
 
 # hotspots - using find_hotspots.py from Singhal 2015
 for i in {1..17}; do 
