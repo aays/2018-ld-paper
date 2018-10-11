@@ -205,6 +205,26 @@ pi_density_plot <- pi_density %>%
   coord_cartesian(x = c(-5.4, -3.8), y = c(0, 0.06)) +
   labs(tag = 'C')
 
+r_rho_plot <- full %>%
+  filter(rho != 0, map_rho != 0) %>% 
+  ggplot(aes(x = log10(rho), y = log10(map_rho))) +
+  geom_point(alpha = 0.2) +
+  div_theme(18) +
+  coord_cartesian(x = c(-6.5, 0)) +
+  xlab(expression(paste(rho, 'LD'))) +
+  ylab('R') +
+  scale_x_continuous(labels = c(expression(10^-6),
+                                expression(10^-4),
+                                expression(10^-2), 1)) +
+  scale_y_continuous(breaks = c(-2, -1, 0),
+                     labels = c(expression(10^-2),
+                                expression(10^-1), 1)) +
+  geom_smooth(method = 'lm')
+
+r_rho_plot
+ggsave(r_rho_plot, file = 'mapR_rho_line.pdf',
+       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
+
 # blank plot - to stick on either side of final plot
 # this is so that B and C aren't in a super 'wide' format
 blank_plot <- ggplot(pi_density) +
