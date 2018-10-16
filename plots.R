@@ -140,13 +140,19 @@ ggsave(fig_2, file = 'fig_2.pdf', width = par('din')[1], height = par('din')[1])
 # B - rho ~ CO_density
 # C - CO_density ~ diversity
 
-rho_div <- read_delim('rho_diversity_genedensity_100k.txt', delim = ' ')
+rho_div <- read_delim('rho_diversity_genedensity_100k.txt', delim = ' ') %>% 
+  mutate(log_rho = log10(rho)) %>% 
+  filter(!is.infinite(log_rho))
 rho_density <- read_csv('rho_to_CO_density.txt') %>% 
   mutate(bins = str_replace(bins, '\\(', '')) %>%
   mutate(bins = str_replace(bins, '\\)', '')) %>% 
   separate(bins, into = c('bin_left', 'bin_right'), sep = ', ') %>% 
   mutate(bin_left = as.numeric(bin_left), bin_right = as.numeric(bin_right))
-pi_density <- read_csv('pi_by_CO_density.txt')
+pi_density <- read_csv('pi_by_CO_density.txt') %>% 
+  mutate(silent_sites = fold4 + intronic + intergenic) %>% 
+  filter(sites >= 100000, silent_sites >= 500) %>% 
+  mutate(log_density = log10(CO_density)) %>% 
+  filter(!is.infinite(log_density))
 
 div_theme <- function(font_size = 12) {
   out <- theme(plot.title = element_text(family = "Helvetica", hjust = 0.5),
@@ -165,16 +171,21 @@ div_theme <- function(font_size = 12) {
 }
 
 # 3A
+# rho_div %>% lm(diversity ~ log_rho, data = .) %>% summary()
 rho_div_plot <- ggplot(rho_div, aes(x = log10(rho), y = diversity)) +
   geom_point(size = 1.5) +
   div_theme(font_size = 18) +
   xlab(expression(paste(rho, 'LD'))) +
   ylab(expression(paste('Diversity (', theta[pi], ')'))) +
-  coord_cartesian(x = c(-4.5, -1)) +
+  coord_cartesian(x = c(-4.5, -1), y = c(0, 0.0475)) +
   scale_x_continuous(breaks = c(-4:-1), labels = c('0.0001', 10^-3, 10^-2, 10^-1)) +
+  geom_smooth(method = 'lm', se = FALSE) +
+  annotate('text', x = -4, y = 0.04, size = 5.5, 
+           label = 'italic(R) ^ 2 == 0.34', parse = TRUE) +
   labs(tag = 'A')
 
 # 3B
+# rho_density %>% filter(COs != 0) %>% lm(log10(CO_density) ~ rho_midpoints, data = .) %>% summary()
 rho_density_plot <- rho_density %>% 
   filter(COs != 0) %>% 
   ggplot(aes(x = rho_midpoints, y = log10(CO_density))) +
@@ -186,12 +197,13 @@ rho_density_plot <- rho_density %>%
   scale_y_continuous(breaks = c(seq(-5, -3.5, by = 0.5)),
     labels = c(expression(10^-5), expression(10^-4.5), # manual solution...
                                 expression(10^-4), expression(10^-3.5))) +
+  annotate('text', x = 0.015, y = -3.5, size = 5.5, 
+           label = 'italic(R) ^ 2 == 0.56', parse = TRUE) +
   labs(tag = 'B')
 
 # 3C
+# pi_density %>% lm(Diversity ~ log_density, data = .) %>% summary()
 pi_density_plot <- pi_density %>% 
-  mutate(silent_sites = fold4 + intronic + intergenic) %>% 
-  filter(sites >= 100000, silent_sites >= 500) %>% 
   ggplot(aes(x = log10(CO_density), y = Diversity)) +
   geom_point(size = 1.5) +
   div_theme(font_size = 18) +
@@ -203,8 +215,11 @@ pi_density_plot <- pi_density %>%
   xlab('CO density') +
   ylab(expression(paste('Diversity (', theta[pi], ')'))) +
   coord_cartesian(x = c(-5.4, -3.8), y = c(0, 0.06)) +
+  annotate('text', x = -5, y = 0.055, size = 5.5, 
+           label = 'italic(R) ^ 2 == 0.38', parse = TRUE) +
   labs(tag = 'C')
 
+# supplement?
 r_rho_plot <- full %>%
   filter(rho != 0, map_rho != 0) %>% 
   ggplot(aes(x = log10(rho), y = log10(map_rho))) +
@@ -230,13 +245,14 @@ ggsave(r_rho_plot, file = 'mapR_rho_line.pdf',
 blank_plot <- ggplot(pi_density) +
   geom_blank()
   
+
 # putting it together with patchwork
 fig_3 <- blank_plot + rho_div_plot + {
   rho_density_plot + pi_density_plot + plot_layout(ncol = 1)
 } + blank_plot + 
   plot_layout(ncol = 4, nrow = 1, width = c(0.1, 1, 0.6, 0.3))
 
-ggsave(fig_3, file = 'fig_3.pdf', 
+ggsave(fig_3, file = 'fig_3_r2.pdf', 
        width = par('din')[1] * 1.8, height = par('din')[1] * 0.9)
 
 ###
